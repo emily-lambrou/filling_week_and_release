@@ -282,8 +282,8 @@ def get_release_field_options(project_id):
 
 
 def extract_date_range_from_release_name(release_name):
-    # Updated regex to capture date ranges like "Dec 09, 2024 - Jan 06, 2025" and ignore trailing version numbers
-    date_range_pattern = r"([a-zA-Z]+ \d{1,2}),? (\d{4})? - ([a-zA-Z]+ \d{1,2}),? (\d{4})?(\s?\(v[^\)]+\))?"
+    # Updated regex to capture date ranges like "May 07 - Jun 09, 2025 (v0.9.5)" and ignore version numbers
+    date_range_pattern = r"([a-zA-Z]+ \d{1,2}), (\d{4})? - ([a-zA-Z]+ \d{1,2}), (\d{4})(?:\s?\(v[^\)]+\))?"
     
     match = re.search(date_range_pattern, release_name)
     
