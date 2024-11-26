@@ -215,14 +215,8 @@ def get_project_id_by_title(owner, project_title):
         logging.error(f"Request error: {e}")
         return None
 
-def get_release_field_options(project_id, due_date_str):
-    """
-    Fetch release field options for the project and compare with a due date.
-    
-    :param project_id: The ID of the project to fetch release field options from.
-    :param due_date_str: The due date in 'YYYY-MM-DD' format (e.g., '2024-11-24').
-    :return: A dictionary of release options with 'id', 'start_date', 'end_date'.
-    """
+def get_release_field_options(project_id, due_date_str=None):
+    # Ensure due_date_str can be None, or set it to a default value inside the function
     query = """
     query($projectId: ID!) {
       node(id: $projectId) {
@@ -261,35 +255,25 @@ def get_release_field_options(project_id, due_date_str):
         fields = data['data']['node']['fields']['nodes']
         release_options = {}
 
-        # Convert due date string to a datetime object
-        due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
-
         # Iterate through the fields to find the Releases field
         for field in fields:
             field_name = field.get('name')
             if field_name == "Release":
                 for option in field.get('options', []):
-                    release_name = option.get('name', '')
-                    release_id = option.get('id', '')
+                    release_name = option['name']
+                    release_id = option['id']
                     
                     # Try to parse the date range from the release name, e.g., "May 07 - Jun 09, 2025 (v0.9.5)"
-                    logging.debug(f"Processing release: {release_name}")
                     date_range = extract_date_range_from_release_name(release_name)
                     if date_range:
-                        start_date_str, end_date_str = date_range
-                        start_date = datetime.strptime(start_date_str, '%b %d, %Y')
-                        end_date = datetime.strptime(end_date_str, '%b %d, %Y')
-
-                        # Compare due date with the release date range
-                        if start_date <= due_date <= end_date:
-                            release_options[release_name] = {
-                                'id': release_id,
-                                'start_date': start_date_str,
-                                'end_date': end_date_str
-                            }
+                        release_options[release_name] = {
+                            'id': release_id,
+                            'start_date': date_range[0],
+                            'end_date': date_range[1]
+                        }
 
         if not release_options:
-            logging.warning("No valid release options found for the due date.")
+            logging.warning("No release options found in the project.")
         return release_options
 
     except requests.RequestException as e:
