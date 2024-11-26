@@ -12,7 +12,7 @@ EXCLUDED_PATTERNS = [
 ]
 
 # Regex pattern for validating release name format (e.g., includes date range)
-RELEASE_DATE_PATTERN = r"\b\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}\b"
+RELEASE_DATE_PATTERN = r"([A-Za-z]{3} \d{2}) - ([A-Za-z]{3} \d{2}), (\d{4})"
 
 def should_exclude_release(release_name):
     """
