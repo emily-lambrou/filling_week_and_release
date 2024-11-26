@@ -215,7 +215,14 @@ def get_project_id_by_title(owner, project_title):
         logging.error(f"Request error: {e}")
         return None
 
-def get_release_field_options(project_id):
+def get_release_field_options(project_id, due_date_str):
+    """
+    Fetch release field options for the project and compare with a due date.
+    
+    :param project_id: The ID of the project to fetch release field options from.
+    :param due_date_str: The due date in 'YYYY-MM-DD' format (e.g., '2024-11-24').
+    :return: A dictionary of release options with 'id', 'start_date', 'end_date'.
+    """
     query = """
     query($projectId: ID!) {
       node(id: $projectId) {
@@ -254,44 +261,67 @@ def get_release_field_options(project_id):
         fields = data['data']['node']['fields']['nodes']
         release_options = {}
 
+        # Convert due date string to a datetime object
+        due_date = datetime.strptime(due_date_str, '%Y-%m-%d')
+
         # Iterate through the fields to find the Releases field
         for field in fields:
             field_name = field.get('name')
             if field_name == "Release":
                 for option in field.get('options', []):
-                    release_name = option['name']
-                    release_id = option['id']
+                    release_name = option.get('name', '')
+                    release_id = option.get('id', '')
                     
                     # Try to parse the date range from the release name, e.g., "May 07 - Jun 09, 2025 (v0.9.5)"
+                    logging.debug(f"Processing release: {release_name}")
                     date_range = extract_date_range_from_release_name(release_name)
                     if date_range:
-                        release_options[release_name] = {
-                            'id': release_id,
-                            'start_date': date_range[0],
-                            'end_date': date_range[1]
-                        }
+                        start_date_str, end_date_str = date_range
+                        start_date = datetime.strptime(start_date_str, '%b %d, %Y')
+                        end_date = datetime.strptime(end_date_str, '%b %d, %Y')
+
+                        # Compare due date with the release date range
+                        if start_date <= due_date <= end_date:
+                            release_options[release_name] = {
+                                'id': release_id,
+                                'start_date': start_date_str,
+                                'end_date': end_date_str
+                            }
 
         if not release_options:
-            logging.warning("No release options found in the project.")
+            logging.warning("No valid release options found for the due date.")
         return release_options
 
     except requests.RequestException as e:
         logging.error(f"Request error: {e}")
         return None
 
-
-
 def extract_date_range_from_release_name(release_name):
-    # Updated regex to capture date ranges like "May 07 - Jun 09, 2025 (v0.9.5)" and ignore version numbers
-    date_range_pattern = r"([a-zA-Z]+ \d{1,2}), (\d{4})? - ([a-zA-Z]+ \d{1,2}), (\d{4})(?:\s?\(v[^\)]+\))?"
+    """
+    Extract date range from a release name like 'May 07 - Jun 09, 2025 (v0.9.5)'.
+
+    :param release_name: The release name containing the date range and version.
+    :return: Tuple of start and end dates as strings in 'Month dd, yyyy' format.
+    """
+    # Regex to match date ranges like "May 07 - Jun 09, 2025 (v0.9.5)"
+    date_range_pattern = r"([a-zA-Z]+ \d{2}) - ([a-zA-Z]+ \d{2}), (\d{4})(?: \(\S+\))?"
     
+    logging.debug(f"Attempting to match date range in: {release_name}")
+    # Try to match the pattern
     match = re.search(date_range_pattern, release_name)
     
     if match:
-        start_month_day = match.group(1) + " " + match.group(2) if match.group(2) else match.group(1)
-        end_month_day = match.group(3) + " " + match.group(4) if match.group(4) else match.group(3)
+        # Match groups:
+        start_month_day = match.group(1)  # e.g., "May 07"
+        end_month_day = match.group(2)  # e.g., "Jun 09"
+        year = match.group(3)  # e.g., "2025"
+
+        # Construct date strings including year for both start and end
+        start_date = f"{start_month_day}, {year}"
+        end_date = f"{end_month_day}, {year}"
         
-        return start_month_day, end_month_day
+        logging.debug(f"Date range found: Start: {start_date}, End: {end_date}")
+        return start_date, end_date
 
     # Case when no date range is found
     logging.warning(f"No date range found in release name: {release_name}")
