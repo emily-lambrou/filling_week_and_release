@@ -6,9 +6,15 @@ from datetime import datetime
 import logging
 import config
 
+import re
+import logging
+from datetime import datetime
+import graphql
+import config
+
 # Patterns or criteria to exclude certain releases
 EXCLUDED_PATTERNS = [
-    "Unicaf Release",  # Example: exclude releases with "Unicaf Release" in the name
+    "Unicaf Release",  # Exclude releases with "Unicaf Release" in the name
 ]
 
 # Regex pattern for validating release name format (e.g., includes date range)
@@ -49,7 +55,6 @@ def find_matching_release(release_options, due_date):
             return release_data
     return None
 
-# Updated date parsing function to handle missing year logic in release names
 def parse_release_date(release_name, due_date):
     """
     Parses a release date and handles cases where the year is missing for the start or end date.
