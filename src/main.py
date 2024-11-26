@@ -6,28 +6,8 @@ from datetime import datetime
 import logging
 import config
 
-import re
-import logging
-from datetime import datetime
-import graphql
-import config
-
-# Patterns or criteria to exclude certain releases
-EXCLUDED_PATTERNS = [
-    "Unicaf Release",  # Exclude releases with "Unicaf Release" in the name
-]
-
 # Regex pattern for validating release name format (e.g., includes date range)
-RELEASE_DATE_PATTERN = r"([A-Za-z]{3} \d{2}) - ([A-Za-z]{3} \d{2}), (\d{4})"
-
-def should_exclude_release(release_name):
-    """
-    Determines if a release should be excluded based on patterns or criteria.
-    """
-    for pattern in EXCLUDED_PATTERNS:
-        if pattern in release_name:
-            return True
-    return False
+RELEASE_DATE_PATTERN = r"([a-zA-Z]+ \d{2}) - ([a-zA-Z]+ \d{2}), (\d{4})(?: \(\S+\))?"
 
 def is_valid_release_format(release_name):
     """
@@ -35,56 +15,46 @@ def is_valid_release_format(release_name):
     """
     return re.search(RELEASE_DATE_PATTERN, release_name) is not None
 
-def find_matching_release(release_options, due_date):
+def find_matching_release(release_options, due_date_obj):
     """
     Find the correct release based on the due date.
     :param release_options: Dictionary of release options with date ranges
-    :param due_date: The due date to match
+    :param due_date_obj: The due date to match as a datetime object
     :return: Matching release option or None
     """
     for release_name, release_data in release_options.items():
-        # Skip excluded or invalid releases
-        if should_exclude_release(release_name):
-            logging.info(f"Excluding release: {release_name}")
-            continue
+        # Skip invalid releases (if the format is not valid)
         if not is_valid_release_format(release_name):
             logging.warning(f"Skipping release due to invalid format: {release_name}")
             continue
 
-        if release_data['start_date'] <= due_date <= release_data['end_date']:
+        # Check if the release date range matches the due date
+        start_date = datetime.strptime(release_data['start_date'], "%b %d, %Y").date()
+        end_date = datetime.strptime(release_data['end_date'], "%b %d, %Y").date()
+        
+        if start_date <= due_date_obj <= end_date:
             return release_data
     return None
 
-def parse_release_date(release_name, due_date):
+def parse_release_date(release_name, due_date_obj):
     """
     Parses a release date and handles cases where the year is missing for the start or end date.
     :param release_name: The release name (e.g., "Jan 07 - Feb 09")
-    :param due_date: The due date to infer the year from
+    :param due_date_obj: The due date as a datetime object to infer the year from
     :return: Start and end dates as datetime.date objects
     """
     # Find date ranges in the release name (e.g., "Jan 07 - Feb 09")
-    match = re.search(r'(\b\w{3} \d{2})(?: - )?(\b\w{3} \d{2})', release_name)
+    match = re.search(r'([a-zA-Z]+ \d{2}) - ([a-zA-Z]+ \d{2}), (\d{4})(?: \(\S+\))?', release_name)
     
     if match:
-        start_date_str, end_date_str = match.groups()
+        start_date_str, end_date_str, year = match.groups()
 
-        # Add the current year to the start and end dates if no year is specified
+        # Add the year from the matched group to the start and end dates
         start_date_month_day = datetime.strptime(start_date_str, "%b %d")
         end_date_month_day = datetime.strptime(end_date_str, "%b %d")
         
-        start_date_year = due_date.year
-        end_date_year = due_date.year
-
-        # If the start month is after the due date's month, infer the start year is the previous year
-        if start_date_month_day.month > due_date.month:
-            start_date_year -= 1
-
-        # If the end month is before the due date's month, infer the end year is the next year
-        if end_date_month_day.month < due_date.month:
-            end_date_year += 1
-
-        start_date = datetime(year=start_date_year, month=start_date_month_day.month, day=start_date_month_day.day).date()
-        end_date = datetime(year=end_date_year, month=end_date_month_day.month, day=end_date_month_day.day).date()
+        start_date = datetime(year=int(year), month=start_date_month_day.month, day=start_date_month_day.day).date()
+        end_date = datetime(year=int(year), month=end_date_month_day.month, day=end_date_month_day.day).date()
 
         return start_date, end_date
 
