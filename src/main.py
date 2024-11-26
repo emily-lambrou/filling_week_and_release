@@ -143,16 +143,17 @@ def release_based_on_duedate():
         issue_id = issue_content.get('id')
         if not issue_id:
             continue
-
-        due_date = project_item.get('fieldValueByName', {}).get(config.duedate_field_name)
-        if not due_date:
-            logging.info(f"No due date for issue {project_item.get('title')}. Skipping.")
-            continue
-
+         
+        # Get the due date value
+        due_date = None
+        due_date_obj = None
         try:
-            # Parse the due date
-            due_date_obj = datetime.strptime(due_date, "%Y-%m-%d").date()
-            logging.info(f"Due date is: {due_date_obj}.")
+            due_date = projectItem.get('fieldValueByName', {}).get('date')
+            if due_date:
+                due_date_obj = datetime.strptime(due_date, "%Y-%m-%d").date()
+                logging.info(f"Due date is: {due_date_obj}.")
+        except (AttributeError, ValueError) as e:
+            continue  # Skip this issue and move to the next
 
             # Loop over release options and check if the release name contains a date range
             release_to_update = None
