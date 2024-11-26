@@ -148,7 +148,7 @@ def release_based_on_duedate():
         due_date = None
         due_date_obj = None
         try:
-            due_date = projectItem.get('fieldValueByName', {}).get('date')
+            due_date = project_item.get('fieldValueByName', {}).get('date')
             if due_date:
                 due_date_obj = datetime.strptime(due_date, "%Y-%m-%d").date()
                 logging.info(f"Due date is: {due_date_obj}.")
