@@ -152,6 +152,7 @@ def release_based_on_duedate():
         try:
             # Parse the due date
             due_date_obj = datetime.strptime(due_date, "%Y-%m-%d").date()
+            logging.info(f"Due date is: {due_date_obj}.")
 
             # Loop over release options and check if the release name contains a date range
             release_to_update = None
