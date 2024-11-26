@@ -224,8 +224,8 @@ def get_release_field_options(project_id):
           fields(first: 50) {
             nodes {
               __typename
-              ... on ProjectV2SingleSelectField {
-                name
+              ... on ProjectV2ItemFieldIterationValue {
+                title
                 options {
                   id
                   name
@@ -312,9 +312,8 @@ def get_release_field_id(project_id, release_field_name):
           fields(first: 100) {
             nodes {
               __typename
-              ... on ProjectV2SingleSelectField {
-                id
-                name
+              ... on ProjectV2ItemFieldIterationValue {
+                title
                 options {
                   id
                   name
@@ -355,7 +354,7 @@ def get_release_field_id(project_id, release_field_name):
         # Get fields from the response
         fields = data['data']['node']['fields']['nodes']
         for field in fields:
-            if field.get('name') == release_field_name and field['__typename'] == 'ProjectV2SingleSelectField':
+            if field.get('name') == release_field_name and field['__typename'] == 'ProjectV2ItemFieldIterationValue':
                 return field['id']
         
         logging.warning(f"Release field '{release_field_name}' not found.")
