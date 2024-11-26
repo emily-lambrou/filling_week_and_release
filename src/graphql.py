@@ -215,7 +215,6 @@ def get_project_id_by_title(owner, project_title):
         logging.error(f"Request error: {e}")
         return None
 
-# Fetch and map release options by date range
 def get_release_field_options(project_id):
     query = """
     query($projectId: ID!) {
@@ -263,7 +262,7 @@ def get_release_field_options(project_id):
                     release_name = option['name']
                     release_id = option['id']
                     
-                    # Try to parse the date range from the release name, e.g., "Nov 13 - Dec 06, 2024"
+                    # Try to parse the date range from the release name, e.g., "May 07 - Jun 09, 2025 (v0.9.5)"
                     date_range = extract_date_range_from_release_name(release_name)
                     if date_range:
                         release_options[release_name] = {
@@ -279,6 +278,7 @@ def get_release_field_options(project_id):
     except requests.RequestException as e:
         logging.error(f"Request error: {e}")
         return None
+
 
 
 def extract_date_range_from_release_name(release_name):
